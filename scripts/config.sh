@@ -4,9 +4,9 @@
 # These variables configure your application name, bundle ID, and build options.
 # Run `make setup` to set the app name and bundle ID, or modify this file directly.
 
-export APP_NAME="${APP_NAME:-MarkdownEditor}" # executable / module name: letters, digits, - or _
+export APP_NAME="${APP_NAME:-MarkdownEditor}"                  # executable / module name: letters, digits, - or _
 export APP_DISPLAY_NAME="${APP_DISPLAY_NAME:-Markdown Editor}" # shown in Finder, Dock, menu bar, DMG (max 15 chars for the menu bar)
-export BUNDLE_ID="${BUNDLE_ID:-com.mardown.ed}"
+export BUNDLE_ID="${BUNDLE_ID:-com.markdown.ed}"
 export MIN_MACOS_VERSION="${MIN_MACOS_VERSION:-12.0}"
 export COPYRIGHT="${COPYRIGHT:-Copyright © $(date +%Y). All rights reserved.}"
 export LS_UI_ELEMENT="${LS_UI_ELEMENT:-false}" # Set to "true" for menu-bar-only / agent apps

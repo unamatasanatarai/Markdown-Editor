@@ -215,7 +215,7 @@ App metadata and bundle configuration can be managed interactively via `make set
 ```bash
 export APP_NAME="MarkdownEditor"
 export APP_DISPLAY_NAME="Markdown Editor"
-export BUNDLE_ID="com.mardown.ed"
+export BUNDLE_ID="com.markdown.ed"
 export MIN_MACOS_VERSION="12.0"
 export LS_UI_ELEMENT="false"
 ```
