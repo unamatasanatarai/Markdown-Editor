@@ -420,14 +420,21 @@ public enum HardeningTests {
         }
 
         // Growth check that works in unoptimised test builds: quadratic work grows ~4× per doubling.
+        // A busy machine can stretch one timing several-fold, so a failure must repeat: quadratic
+        // growth fails every attempt, scheduling noise doesn't (a flaky failure blocked releases).
         func expectLinear(_ name: String, _ make: (Int) -> String, _ n: Int, _ run: (String) -> Void) throws {
-            func time(_ k: Int) -> Double { // best of two, to filter scheduling noise
+            func time(_ k: Int) -> Double { // best of three, to filter scheduling noise
                 let s = make(k)
-                return (0..<2).map { _ in let a = CFAbsoluteTimeGetCurrent(); run(s); return CFAbsoluteTimeGetCurrent() - a }.min()!
+                return (0..<3).map { _ in let a = CFAbsoluteTimeGetCurrent(); run(s); return CFAbsoluteTimeGetCurrent() - a }.min()!
             }
             _ = time(n / 8) // warm up
-            let t1 = time(n / 2), t2 = time(n)
-            try expect(t2 < 0.25 || t2 / max(t1, 1e-3) < 3.3, "\(name): \(String(format: "%.2f→%.2fs", t1, t2)) per doubling")
+            var report: [String] = []
+            for _ in 0..<3 {
+                let t1 = time(n / 2), t2 = time(n)
+                if t2 < 0.25 || t2 / max(t1, 1e-3) < 3.3 { return }
+                report.append(String(format: "%.2f→%.2fs", t1, t2))
+            }
+            try expect(false, "\(name): \(report.joined(separator: ", ")) per doubling (3 attempts)")
         }
 
         testRunner("Renderer stays linear on adversarial input (ALERT-003/009)") {
