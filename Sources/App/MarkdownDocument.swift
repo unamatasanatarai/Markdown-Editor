@@ -18,8 +18,8 @@ final class MarkdownDocument: NSDocument {
     override func makeWindowControllers() {
         let wc = EditorWindowController()
         addWindowController(wc)
-        _ = wc.editor.view
         wc.editor.baseURL = fileURL?.deletingLastPathComponent()
+        _ = wc.editor.view
         wc.editor.markdown = loadedText
         if repairedBytes > 0 {
             wc.editor.flash("\(repairedBytes) byte\(repairedBytes == 1 ? "" : "s") weren't valid UTF-8 and were read as "

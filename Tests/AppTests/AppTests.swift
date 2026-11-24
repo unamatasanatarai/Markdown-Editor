@@ -854,5 +854,29 @@ public enum PerformanceTests {
             try settle(ed, after: renders)
             try expectContains(try previewHTML(ed), "typed-while-hidden")
         }
+
+        testRunner("Local images load in preview when baseURL is set") {
+            let (host, tab) = makeEditor()
+            defer { host.remove(tab) }
+            let ed = tab.editor
+            let projectDir = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+            ed.baseURL = projectDir
+            ed.markdown = "<p><img id=\"test_icon\" src=\"Resources/AppIcon.svg\" width=\"128\" height=\"128\"></p>"
+            try settle(ed, after: 0)
+            var naturalWidth: Int?
+            let ok = wait(5) {
+                var w: Int?
+                ed.webView.evaluateJavaScript("var img = document.getElementById('test_icon'); img && img.complete ? img.naturalWidth : 0") { res, _ in
+                    w = res as? Int
+                }
+                while w == nil { RunLoop.current.run(until: Date().addingTimeInterval(0.01)) }
+                if let nw = w, nw > 0 {
+                    naturalWidth = nw
+                    return true
+                }
+                return false
+            }
+            try expect(ok && (naturalWidth ?? 0) > 0, "local image should load with naturalWidth > 0, got \(String(describing: naturalWidth))")
+        }
     }
 }

@@ -181,13 +181,14 @@ public enum HTMLTemplate {
     }
 
     /// Empty preview page; content is injected into `#content` by the editor.
-    public static func previewShell(dark: Bool) -> String {
-        """
+    public static func previewShell(dark: Bool, baseHref: String? = nil) -> String {
+        let baseTag = baseHref.map { "<base href=\"\(MDEscape.attr($0))\">\n" } ?? ""
+        return """
         <!DOCTYPE html>
         <html lang="en" class="\(dark ? "dark" : "light")">
         <head>
         <meta charset="utf-8">
-        <style>
+        \(baseTag)<style>
         \(css)
         .markdown-body{min-height:100vh}
         </style>

@@ -158,6 +158,7 @@ final class WebPrintJob: NSObject, WKNavigationDelegate {
     private static var active: Set<WebPrintJob> = []
     private let html: String
     private let baseURL: URL?
+    private var printURL: URL?
     private let mode: Mode
     private weak var parentWindow: NSWindow?
     private let completion: (Error?) -> Void
@@ -195,7 +196,25 @@ final class WebPrintJob: NSObject, WKNavigationDelegate {
                               backing: .buffered, defer: false)
         hostWindow.isReleasedWhenClosed = false
         hostWindow.contentView = webView
-        webView.loadHTMLString(html, baseURL: baseURL ?? URL(string: "about:blank"))
+        var loadedViaFileURL = false
+        if let base = baseURL {
+            let baseStr = base.absoluteString.hasSuffix("/") ? base.absoluteString : base.absoluteString + "/"
+            let baseTag = "<base href=\"\(MDEscape.attr(baseStr))\">\n"
+            var patchedHTML = html
+            if let headRange = patchedHTML.range(of: "<head>", options: .caseInsensitive) {
+                patchedHTML.insert(contentsOf: baseTag, at: headRange.upperBound)
+            }
+            let tempDir = FileManager.default.temporaryDirectory
+            let printShellFile = tempDir.appendingPathComponent("markdown_print_\(UUID().uuidString).html")
+            if (try? patchedHTML.write(to: printShellFile, atomically: true, encoding: .utf8)) != nil {
+                printURL = printShellFile
+                loadedViaFileURL = true
+                webView.loadFileURL(printShellFile, allowingReadAccessTo: URL(fileURLWithPath: "/"))
+            }
+        }
+        if !loadedViaFileURL {
+            webView.loadHTMLString(html, baseURL: baseURL ?? URL(string: "about:blank"))
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.loadTimeout) { [self] in
             guard !printing, !finished else { return }
             loaded = true
@@ -283,6 +302,10 @@ final class WebPrintJob: NSObject, WKNavigationDelegate {
     private func finish(_ error: Error?) {
         guard !finished else { return }
         finished = true
+        if let url = printURL {
+            try? FileManager.default.removeItem(at: url)
+            printURL = nil
+        }
         completion(error)
         hostWindow?.close()
         Self.active.remove(self)

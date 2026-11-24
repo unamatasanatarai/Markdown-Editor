@@ -29,7 +29,7 @@ final class EditorViewController: NSViewController, NSTextViewDelegate, NSTextSt
     var onTextChange: (() -> Void)?
     var baseURL: URL? {
         didSet {
-            if oldValue?.standardizedFileURL != baseURL?.standardizedFileURL { reloadPreviewShell() }
+            if isViewLoaded, oldValue?.standardizedFileURL != baseURL?.standardizedFileURL { reloadPreviewShell() }
         }
     }
 
@@ -405,6 +405,15 @@ final class EditorViewController: NSViewController, NSTextViewDelegate, NSTextSt
     private var outstandingPreviewScripts = 0
     var isPreviewSettled: Bool { !renderInFlight && !renderDirty && outstandingPreviewScripts == 0 }
 
+    private var previewShellURL: URL?
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+        if let url = previewShellURL {
+            try? FileManager.default.removeItem(at: url)
+        }
+    }
+
     private func reloadPreviewShell() {
         guard webView != nil else { return }
         previewReady = false
@@ -412,7 +421,22 @@ final class EditorViewController: NSViewController, NSTextViewDelegate, NSTextSt
         shellGeneration += 1
         scrollSyncInFlight = false
         scrollSyncPending = false
-        webView.loadHTMLString(HTMLTemplate.previewShell(dark: isDark), baseURL: baseURL ?? URL(string: "about:blank"))
+
+        let baseTag: String? = baseURL.map { base in
+            base.absoluteString.hasSuffix("/") ? base.absoluteString : base.absoluteString + "/"
+        }
+        let shellHTML = HTMLTemplate.previewShell(dark: isDark, baseHref: baseTag)
+        let tempDir = FileManager.default.temporaryDirectory
+        let shellFile = tempDir.appendingPathComponent("markdown_preview_shell_\(ProcessInfo.processInfo.processIdentifier)_\(shellGeneration).html")
+        if (try? shellHTML.write(to: shellFile, atomically: true, encoding: .utf8)) != nil {
+            if let old = previewShellURL, old != shellFile {
+                try? FileManager.default.removeItem(at: old)
+            }
+            previewShellURL = shellFile
+            webView.loadFileURL(shellFile, allowingReadAccessTo: URL(fileURLWithPath: "/"))
+        } else {
+            webView.loadHTMLString(shellHTML, baseURL: baseURL ?? URL(string: "about:blank"))
+        }
     }
 
     private func appearanceChanged() {

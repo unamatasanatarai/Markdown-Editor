@@ -337,6 +337,10 @@ cat <<EOF >"$ql_entitlements"
     <true/>
     <key>com.apple.security.files.user-selected.read-only</key>
     <true/>
+    <key>com.apple.security.temporary-exception.files.absolute-path.read-only</key>
+    <array>
+        <string>/</string>
+    </array>
 </dict>
 </plist>
 EOF
@@ -365,7 +369,10 @@ codesign --verify --strict "$app_dir"
 printf '%s\n' "Refreshing macOS LaunchServices and Quick Look caches..."
 touch "$app_dir"
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f -R "$app_dir" >/dev/null 2>&1 || true
-pluginkit -a "$appex_dir" >/dev/null 2>&1 || true
+if [[ -d "$appex_dir" ]]; then
+    pluginkit -a "$appex_dir" >/dev/null 2>&1 || true
+    pluginkit -e use -i "${ql_bundle_id}" >/dev/null 2>&1 || true
+fi
 qlmanage -r >/dev/null 2>&1 || true
 qlmanage -r cache >/dev/null 2>&1 || true
 
