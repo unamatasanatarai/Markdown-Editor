@@ -1079,7 +1079,30 @@ final class MDInline {
         return (left, right)
     }
 
+    private static func hasInlineSyntax(_ s: String) -> Bool {
+        var hasColon = false
+        var hasDot = false
+        for b in s.utf8 {
+            switch b {
+            case 92, 96, 42, 95, 126, 33, 91, 93, 60, 38, 10: // \ ` * _ ~ ! [ ] < & \n
+                return true
+            case 58: // :
+                hasColon = true
+            case 46: // .
+                hasDot = true
+            default:
+                break
+            }
+        }
+        if hasColon && s.contains("://") { return true }
+        if hasDot && (s.contains("www.") || s.contains("WWW.")) { return true }
+        return false
+    }
+
     func render(_ s: String) -> String {
+        if !Self.hasInlineSyntax(s) {
+            return MDEscape.html(s)
+        }
         let chars = Array(s)
         let n = chars.count
         var nodes: [Node] = []
